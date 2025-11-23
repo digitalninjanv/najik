@@ -298,7 +298,7 @@ $ketnama = "Silahkan mengisi nama";
                   <?php $sisa = $totalnilai - $totalbayar?>
                   <td><small><?php echo "Rp " . number_format($sisa, 0, ',', '.');?></small></td> 
                   <td>
-                      <small> <a href="invoice.php?codx=<?php echo $data['codx']; ?>">Invoice</a> | <a href="full.php?codx=<?php echo $data['codx']; ?>">Full</a> | <a href="suratjalan.php">Surat Jalan</a> | <a href="tandaterima.php">Tanda Terima</a> </small>
+                      <small> <a href="invoice.php?codx=<?php echo $data['codx']; ?>">Invoice</a> | <a href="full.php?codx=<?php echo $data['codx']; ?>">Full</a> | <a href="sum.php?codx=<?php echo $data['codx']; ?>">Sum</a> | <a href="suratjalan.php">Surat Jalan</a> | <a href="tandaterima.php">Tanda Terima</a> </small>
                       
                       
                       <a href="list.php?oid=<?php echo $data['id'];?>">

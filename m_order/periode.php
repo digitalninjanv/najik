@@ -281,6 +281,7 @@ $ketnama = "Silahkan mengisi nama";
                       <small>
                       <a href="invoice.php?codx=<?php echo $data['codx']; ?>">Invoice</a> |
                       <a href="full.php?codx=<?php echo $data['codx']; ?>">Full</a> |
+                      <a href="sum.php?codx=<?php echo $data['codx']; ?>">Sum</a> |
                       <a href="cetak.php?codx=<?php echo $data['codx']; ?>">Cetak</a> |
 
 
