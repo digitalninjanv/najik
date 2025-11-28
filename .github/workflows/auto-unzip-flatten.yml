@@ -1,9 +1,9 @@
-name: Auto unzip (fast & flatten) and remove zip files
+name: Auto unzip (flatten) and remove zip files
 
 on:
   push:
     branches:
-      - main   # ganti kalau branch kamu bukan 'main'
+      - main      # GANTI kalau branch utama kamu bukan 'main'
 
 permissions:
   contents: write
@@ -17,65 +17,56 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Detect, unzip (flatten), and delete ZIP files
+        shell: bash
         run: |
-          set -euo pipefail
-          shopt -s nullglob dotglob
+          set -uo pipefail   # TIDAK pakai -e supaya satu error tidak hentikan semua
 
-          echo "=== FAST PATH: cari *.zip ==="
-          zips=()
-
-          # Fast: hanya file dengan ekstensi .zip (cepat dan umum)
-          while IFS= read -r -d '' f; do
-            zips+=("$f")
-          done < <(find . -maxdepth 10 -type f -name '*.zip' ! -path './.git/*' -print0)
-
-          # OPTIONAL: fallback untuk ZIP tanpa ekstensi (lebih lambat)
-          # Aktif hanya jika tidak ditemukan *.zip
-          if [ ${#zips[@]} -eq 0 ]; then
-            echo "Tidak ada *.zip, fallback cek MIME (mungkin ada ZIP tanpa ekstensi)..."
-            while IFS= read -r -d '' f; do
-              if file --mime-type "$f" | grep -q "application/zip"; then
-                zips+=("$f")
-              fi
-            done < <(find . -maxdepth 5 -type f ! -path './.git/*' -print0)
-          fi
+          echo "=== Scan semua file .zip di repo (maksimal kedalaman 10) ==="
+          mapfile -t zips < <(find . -maxdepth 10 -type f -name "*.zip" ! -path "./.git/*")
 
           if [ ${#zips[@]} -eq 0 ]; then
-            echo "Tidak ada file ZIP terdeteksi. Selesai."
+            echo "Tidak ada file .zip ditemukan. Selesai."
             exit 0
           fi
 
-          echo "Ditemukan ${#zips[@]} file ZIP. Mulai proses..."
+          echo "Ditemukan ${#zips[@]} file .zip"
+          shopt -s dotglob nullglob
+
           for z in "${zips[@]}"; do
+            echo
             echo "=== Proses ZIP: $z ==="
             dir=$(dirname "$z")
             tempdir=$(mktemp -d)
 
-            # unzip dengan output minim
-            unzip -qo "$z" -d "$tempdir"
+            echo "Unzip ke folder sementara: $tempdir"
+            if ! unzip -o "$z" -d "$tempdir" >/dev/null; then
+              echo "!!! Gagal unzip $z, lewati file ini."
+              rm -rf "$tempdir"
+              continue
+            fi
 
-            # cek isi level teratas di dalam ZIP
+            # Cek isi level teratas di dalam unzip
             entries=( "$tempdir"/* )
 
             if [ ${#entries[@]} -eq 1 ] && [ -d "${entries[0]}" ]; then
-              echo "ZIP punya satu folder root, flatten isi folder tersebut ke: $dir"
-              # rsync lebih aman & stabil untuk banyak file
-              rsync -a "${entries[0]}/" "$dir/"
+              echo "ZIP punya satu folder root (${entries[0]}), flatten isinya ke: $dir"
+              mv "${entries[0]}"/* "$dir"/ || true
             else
-              echo "ZIP punya banyak item di root, pindahkan semua isi ke: $dir"
-              rsync -a "$tempdir"/ "$dir/"
+              echo "ZIP punya banyak item di root, pindahkan semua ke: $dir"
+              mv "$tempdir"/* "$dir"/ || true
             fi
 
-            # cleanup
+            echo "Bersihkan folder sementara & hapus ZIP"
             rm -rf "$tempdir"
             rm -f "$z"
 
           done
 
-          echo "=== Selesai proses semua ZIP (flatten + hapus zip). ==="
+          echo
+          echo "=== Selesai memproses semua ZIP ==="
 
-      - name: Commit changes
+      - name: Commit changes (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: fast flatten-unzip and remove zip files"
-          branch: main   # samakan dengan di atas
+          commit_message: "chore: flatten unzip and remove zip files"
+          branch: main      # samakan dengan bagian 'on.push.branches'
